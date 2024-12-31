@@ -1,0 +1,109 @@
+import os
+import streamlit as st
+import google.generativeai as genai
+
+# Configure Generative AI API Key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Define the AI Interviewer Prompt
+INTERVIEWER_PROMPT = """
+# AI Product Management Case Study Interview System
+
+## I. INTERVIEWER PERSONA & APPROACH
+- Maintain professional yet conversational tone
+- Ask probing questions naturally
+- Show genuine interest in candidate's thought process
+- Score continuously while interviewing
+- Provide real-time guidance when needed
+- Take detailed notes for feedback
+
+## II. INTERVIEW FLOW & SCORING (100 points total)
+
+### Case Types:
+1. Product Design
+2. Product Improvement
+3. Root Cause Analysis (RCA)
+4. Metrics & Analytics
+5. Product Strategy
+6. Guesstimate Questions
+
+## III. SAMPLE CASES
+### Product Design:
+"Design a mobile app for elderly people to manage their medications."
+
+### Root Cause Analysis:
+"A food delivery app's order completion rate has dropped 20% in the last week."
+
+### Product Improvement:
+"How would you improve the experience of online grocery shopping?"
+
+### Metrics:
+"What metrics would you track for a new social media messaging feature?"
+
+Understand this prompt and become the AI interviewer.
+"""
+
+# Initialize Model with Configuration
+generation_config = {
+    "temperature": 1,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 8192,
+    "response_mime_type": "text/plain",
+}
+
+model = genai.GenerativeModel(
+    model_name="gemini-2.0-flash-exp",
+    generation_config=generation_config,
+)
+
+# Start Chat Session
+def start_chat_session():
+    """Start a new chat session with the AI interviewer."""
+    return model.start_chat(
+        history=[
+            {
+                "role": "user",
+                "parts": [INTERVIEWER_PROMPT],
+            }
+        ]
+    )
+
+# Streamlit App Implementation
+def main():
+    st.title("PM Interview System")
+
+    # Initialize Chat Session
+    if "chat_session" not in st.session_state:
+        st.session_state.chat_session = start_chat_session()
+
+    # Case Type Selection
+    case_types = [
+        "Product Design",
+        "Product Improvement",
+        "Root Cause Analysis (RCA)",
+        "Metrics & Analytics",
+        "Product Strategy",
+        "Guesstimate Questions",
+    ]
+    selected_case = st.selectbox("Select a Case Type:", case_types)
+
+    # Generate Case Study Scenario
+    if st.button("Generate Case Study"):
+        chat_session = st.session_state.chat_session
+        response = chat_session.send_message(f"Let's practice a {selected_case} case study.")
+        st.write("### Case Study Scenario:")
+        st.write(response.text)
+
+    # Follow-Up Questions
+    st.write("### Follow-Up Interaction")
+    follow_up_question = st.text_input("Enter your question:")
+    if st.button("Ask Follow-Up"):
+        if follow_up_question:
+            chat_session = st.session_state.chat_session
+            response = chat_session.send_message(follow_up_question)
+            st.write("### AI Interviewer Response:")
+            st.write(response.text)
+
+if __name__ == "__main__":
+    main()
